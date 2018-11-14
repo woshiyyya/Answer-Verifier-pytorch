@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-
+# My implementation of char_cnn
 '''
     nn.Conv2D(in_channel, out_channel, kernel_size)
     input: (N, in_channel, H_in, W_in)
@@ -19,12 +18,6 @@ class Char_CNN(nn.Module):
         self.N = config['batch_size']
         self.lw = config['word_maxlen']
         self.emb_dim = config['char_emb_size']
-        '''
-        self.convs = [nn.Conv2d(1, c_out, (K_size, self.emb_dim)) for c_out, K_size in zip(self.c_outs, self.K_sizes)]
-        if config['cuda']:
-            for conv in self.convs:
-                conv.cuda()
-        '''
         self.convs = nn.ModuleList([nn.Conv2d(1, c_out, (K_size, self.emb_dim)) for c_out, K_size in zip(self.c_outs, self.K_sizes)])
         self.activation = nn.ReLU()
         self.pdrop = config['dropout_cnn']
@@ -34,11 +27,7 @@ class Char_CNN(nn.Module):
         X = X.view([-1, self.lw, self.emb_dim])
         X = X.unsqueeze(1)                                          # [N*ls, 1, lw, emb]
         X = [self.activation(conv(X)).squeeze(3) for conv in self.convs]    # [N*ls, c_out, H_out] * k_num
-        # for x in X:
-        #     print("a", x.shape)
         X = [F.max_pool1d(x, x.size(2)).squeeze(2) for x in X]      # [N*ls, c_out] * k_num
-        # for x in X:
-        #     print(x.shape)
         X = torch.cat(X, dim=-1)  # [N * ls, 300]
         X = X.view(self.N, -1, sum(self.c_outs))
         X = self.dropout(X, p=self.pdrop)
@@ -66,3 +55,30 @@ class CNN_Text(nn.Module):
         X = self.dropout(X)
         logit = self.linear(X)
         return logit
+
+
+class HighwayMLP(nn.Module):
+    def __init__(self,
+                 input_size,
+                 gate_bias=-2):
+
+        super(HighwayMLP, self).__init__()
+
+        self.activation_function = nn.ReLU()
+        self.gate_activation = F.softmax
+
+        self.normal_layer = nn.Linear(input_size, input_size)
+
+        self.gate_layer = nn.Linear(input_size, input_size)
+        self.gate_layer.bias.data.fill_(gate_bias)
+
+    def forward(self, x):
+
+        normal_layer_result = self.activation_function(self.normal_layer(x))
+        gate_layer_result = self.gate_activation(self.gate_layer(x), dim=-1)
+
+        multiplyed_gate_and_normal = torch.mul(normal_layer_result, gate_layer_result)
+        multiplyed_gate_and_input = torch.mul((1 - gate_layer_result), x)
+
+        return torch.add(multiplyed_gate_and_normal,
+                         multiplyed_gate_and_input)

@@ -44,11 +44,11 @@ def main():
     '''
     vocab, tag_vocab, ner_vocab, char_vocab, embedding = load_meta_(config.meta_path)
     logger.info("building train data...")
-    train_input_path = os.path.join(config.source_path, "addchar_train_input.txt")
+    train_input_path = os.path.join(config.source_path, "addexm_train_input.txt")
     build_data(train_data, vocab, tag_vocab, ner_vocab, char_vocab, fout=train_input_path)
 
     logger.info("building test data...")
-    test_input_path = os.path.join(config.source_path, "addchar_test_input.txt")
+    test_input_path = os.path.join(config.source_path, "addexm_test_input.txt")
     build_data(test_data, vocab, tag_vocab, ner_vocab, char_vocab, fout=test_input_path)
 
 
