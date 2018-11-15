@@ -11,19 +11,6 @@ from tensorboardX import SummaryWriter
 logger = create_logger(__name__)
 
 
-def print_doc_length(data_in):
-    dmaxlen = 0
-    qmaxlen = 0
-    dtt = 0
-    qtt = 0
-    for i, j in zip(data_in['doc'], data_in['query']):
-        dtt += len(i)
-        qtt += len(j)
-        dmaxlen = len(i) if len(i) > dmaxlen else dmaxlen
-        qmaxlen = len(j) if len(j) > qmaxlen else qmaxlen
-    print(dmaxlen, qmaxlen, dtt/len(data_in['doc']), qtt/len(data_in['doc']))
-
-
 def evaluate(pred_prob, label):
     pred_prob = pred_prob.data.cpu().numpy()
     label = label.cpu().numpy()
@@ -33,8 +20,8 @@ def evaluate(pred_prob, label):
 
 
 def submit(path):
-    tr_ans = [[],[]]
-    te_ans = [[],[]]
+    tr_ans = [[], []]
+    te_ans = [[], []]
     tr_gen.reset()
     te_gen.reset()
     model.eval()
@@ -58,8 +45,8 @@ def submit(path):
     print(te_pred.shape)
     prediction_tr = np.hstack([tr_prob, tr_pred])
     prediction_te = np.hstack([te_prob, te_pred])
-    pd.DataFrame(prediction_tr, columns=["tr_prob","tr_pred"]).to_csv("tr.csv")
-    pd.DataFrame(prediction_te, columns=['te_prob',"tr_pred"]).to_csv("te.csv")
+    pd.DataFrame(prediction_tr, columns=["tr_prob", "tr_pred"]).to_csv("tr.csv")
+    pd.DataFrame(prediction_te, columns=['te_prob', "tr_pred"]).to_csv("te.csv")
 
 
 def predict():
@@ -105,17 +92,10 @@ if __name__ == "__main__":
     train_data, train_label = load_data(config['train_path'])
     test_data, test_label = load_data(config['test_path'])
 
-    print_doc_length(train_data)
-    print_doc_length(test_data)
-
-    generator = BatchGen(config, train_data, train_label,
-                         config['batch_size'], config['doc_maxlen'], config['query_maxlen'], augment=False)
-    tr_gen = BatchGen(config, train_data, train_label,
-                      config['batch_size'], config['doc_maxlen'], config['query_maxlen'], is_training=False)
-    va_gen = BatchGen(config, train_data, train_label,
-                      config['batch_size'], config['doc_maxlen'], config['query_maxlen'])
-    te_gen = BatchGen(config, test_data, test_label,
-                      config['batch_size'], config['doc_maxlen'], config['query_maxlen'], is_training=False)
+    generator = BatchGen(config, train_data, train_label, config['batch_size'], augment=False)
+    tr_gen = BatchGen(config, train_data, train_label, config['batch_size'], is_training=False)
+    va_gen = BatchGen(config, train_data, train_label, config['batch_size'])
+    te_gen = BatchGen(config, test_data, test_label, config['batch_size'], is_training=False)
 
     logger.info("load data complete!")
     model = VerifierModel(config, embedding)
@@ -124,8 +104,6 @@ if __name__ == "__main__":
                                  betas=(config['b1'], config['b2']),
                                  eps=config['e'],
                                  weight_decay=config['decay'])
-    # optimizer = torch.optim.Adadelta(model.parameters(), lr=config['lr'], weight_decay=1e-6)
-    # optimizer = torch.optim.SparseAdam(model.parameters(), lr=config['lr'])
     criterion = nn.CrossEntropyLoss(reduce=False)
 
     if config['cuda']:
