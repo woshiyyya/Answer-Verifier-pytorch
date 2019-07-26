@@ -1,6 +1,9 @@
 # Answer-Verifier-pytorch
-My pytorch implementation of answer verifier in QA setting. (NLP)  
+A pytorch implementation of [Read + Verify: Machine Reading Comprehension
+with Unanswerable Questions](https://arxiv.org/pdf/1808.05759.pdf)
 
-The current accuracy on SQuad2.0 is 69%.
+It is the first architecture proposed to handle un-answerable question in Squad 2.0.
+
+The current implementation achieves 69% accuracy on SQuad2.0.
 
 ![](imgs/accuracy.png)
